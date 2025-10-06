@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVC Student Management System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+        .header-bg {
+            background: linear-gradient(90deg, #4c66ee 0%, #00b4d8 100%);
+        }
+        .input-style {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        .input-style:focus {
+            outline: none;
+            border-color: #4c66ee;
+            box-shadow: 0 0 0 1px #4c66ee;
+        }
+        /* Custom scrollbar for better look */
+        #studentTableContainer {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        #studentTableContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+        #studentTableContainer::-webkit-scrollbar-thumb {
+            background: #4c66ee;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Application Header -->
+        <header class="header-bg text-white p-6 rounded-xl shadow-xl mb-8">
+            <h1 class="text-3xl font-extrabold">Student Management System</h1>
+            <p class="text-indigo-100 mt-1"></p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Student Form (Data Input) -->
+            <div class="lg:col-span-1">
+                <div class="card p-6">
+                    <h2 id="formTitle" class="text-2xl font-semibold text-gray-800 mb-6">Add New Student</h2>
+
+                    <form id="studentForm" class="space-y-4">
+                        <input type="hidden" id="studentIdPk"> <!-- Primary key for internal use -->
+                        
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="name" required placeholder="Jane Doe" class="input-style">
+                        </div>
+                        
+                        <div>
+                            <label for="studentId" class="block text-sm font-medium text-gray-700 mb-1">Student ID (e.g., S1001)</label>
+                            <input type="text" id="studentId" required placeholder="S1001" class="input-style">
+                        </div>
+
+                        <div>
+                            <label for="major" class="block text-sm font-medium text-gray-700 mb-1">Major</label>
+                            <select id="major" required class="input-style bg-white">
+                                <option value="">Select Major</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Business Administration">Business Administration</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Arts and Humanities">Arts and Humanities</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="gpa" class="block text-sm font-medium text-gray-700 mb-1">GPA (0.0 - 4.0)</label>
+                            <input type="number" id="gpa" required step="0.01" min="0.0" max="4.0" placeholder="3.50" class="input-style">
+                        </div>
+
+                        <button type="submit" id="submitButton"
+                            class="w-full py-2 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white 
+                                   bg-indigo-600 hover:bg-indigo-700 transition duration-150 ease-in-out">
+                            <i class="fas fa-save mr-2"></i> Save Student
+                        </button>
+                        <button type="button" id="cancelButton" style="display: none;"
+                            class="w-full py-2 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-indigo-700 
+                                   bg-indigo-100 hover:bg-indigo-200 transition duration-150 ease-in-out mt-2">
+                            Cancel Edit
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Student List (Data Display) -->
+            <div class="lg:col-span-2">
+                <div class="card p-6 h-full flex flex-col">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Student Enrollment List</h2>
+                    
+                    <!-- Notification Area -->
+                    <div id="messageBox" class="p-3 text-sm rounded-lg mb-4 hidden transition-opacity duration-300" role="alert"></div>
+
+                    <!-- Student Table Container -->
+                    <div id="studentTableContainer" class="relative overflow-x-auto rounded-lg border">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Major</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GPA</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentList" class="bg-white divide-y divide-gray-200">
+                                <!-- Student rows will be rendered here by the View -->
+                            </tbody>
+                        </table>
+                        <p id="emptyMessage" class="p-6 text-center text-gray-500 hidden">No students enrolled yet. Use the form to add one!</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Unique ID generator (simple simulation)
+        const generateId = () => Date.now() + Math.floor(Math.random() * 1000);
+        
+        // --- 1. MODEL: Data and Business Logic ---
+        class StudentModel {
+            constructor(initialData = []) {
+                this.students = initialData;
+            }
+
+            // C: Create (Add)
+            addStudent(studentData) {
+                const newStudent = {
+                    id: generateId(), // Internal unique primary key
+                    ...studentData,
+                    gpa: parseFloat(studentData.gpa)
+                };
+                this.students.push(newStudent);
+                return newStudent;
+            }
+
+            // R: Read (Get All)
+            getAllStudents() {
+                // Return a copy, sorted alphabetically by name
+                return [...this.students].sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            // U: Update
+            updateStudent(id, updatedData) {
+                const index = this.students.findIndex(s => s.id === id);
+                if (index > -1) {
+                    this.students[index] = {
+                        ...this.students[index],
+                        ...updatedData,
+                        gpa: parseFloat(updatedData.gpa)
+                    };
+                    return this.students[index];
+                }
+                return null;
+            }
+
+            // D: Delete
+            deleteStudent(id) {
+                const initialLength = this.students.length;
+                this.students = this.students.filter(s => s.id !== id);
+                return this.students.length < initialLength;
+            }
+
+            // Utility to find by internal ID
+            getStudentById(id) {
+                return this.students.find(s => s.id === id);
+            }
+        }
+
+        // --- 2. VIEW: User Interface (HTML Rendering and Interaction) ---
+        class StudentView {
+            constructor() {
+                this.form = document.getElementById('studentForm');
+                this.list = document.getElementById('studentList');
+                this.title = document.getElementById('formTitle');
+                this.submitBtn = document.getElementById('submitButton');
+                this.cancelBtn = document.getElementById('cancelButton');
+                this.messageBox = document.getElementById('messageBox');
+                this.emptyMessage = document.getElementById('emptyMessage');
+            }
+
+            // Renders the entire student list (table body)
+            renderStudentList(students) {
+                this.list.innerHTML = ''; // Clear previous list
+
+                if (students.length === 0) {
+                    this.emptyMessage.classList.remove('hidden');
+                    return;
+                }
+                this.emptyMessage.classList.add('hidden');
+
+                students.forEach(student => {
+                    const row = this.createElement('tr', ['hover:bg-blue-50', 'transition', 'duration-100']);
+                    row.dataset.id = student.id;
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.studentId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">${student.major}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${student.gpa.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <button class="edit-btn text-indigo-600 hover:text-indigo-900 mx-2" data-id="${student.id}">Edit</button>
+                            <button class="delete-btn text-red-600 hover:text-red-900 mx-2" data-id="${student.id}">Delete</button>
+                        </td>
+                    `;
+                    this.list.appendChild(row);
+                });
+            }
+
+            // Populates the form for an edit operation
+            renderFormForEdit(student) {
+                document.getElementById('studentIdPk').value = student.id;
+                document.getElementById('name').value = student.name;
+                document.getElementById('studentId').value = student.studentId;
+                document.getElementById('major').value = student.major;
+                document.getElementById('gpa').value = student.gpa.toFixed(2);
+
+                this.title.textContent = `Edit Student: ${student.name}`;
+                this.submitBtn.textContent = 'Update Student';
+                this.submitBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+                this.cancelBtn.style.display = 'block';
+            }
+
+            // Clears the form and resets to 'Add' mode
+            clearForm() {
+                this.form.reset();
+                document.getElementById('studentIdPk').value = '';
+                this.title.textContent = 'Add New Student';
+                this.submitBtn.textContent = 'Save Student';
+                this.submitBtn.classList.replace('bg-green-600', 'bg-indigo-600');
+                this.cancelBtn.style.display = 'none';
+            }
+
+            // Shows a temporary notification
+            showMessage(message, type = 'success') {
+                this.messageBox.textContent = message;
+                this.messageBox.style.opacity = '1';
+                
+                // Reset and apply classes
+                this.messageBox.className = 'p-3 text-sm rounded-lg mb-4 transition-opacity duration-300';
+                
+                if (type === 'success') {
+                    this.messageBox.classList.add('bg-green-100', 'text-green-800');
+                } else if (type === 'error') {
+                    this.messageBox.classList.add('bg-red-100', 'text-red-800');
+                } else if (type === 'info') {
+                    this.messageBox.classList.add('bg-blue-100', 'text-blue-800');
+                }
+                this.messageBox.style.display = 'block';
+
+                setTimeout(() => {
+                    this.messageBox.style.opacity = '0';
+                    setTimeout(() => this.messageBox.style.display = 'none', 300);
+                }, 3000);
+            }
+
+            // Simple helper for creating elements
+            createElement(tag, classes = []) {
+                const element = document.createElement(tag);
+                if (classes.length > 0) {
+                    element.classList.add(...classes);
+                }
+                return element;
+            }
+        }
+
+        // --- 3. CONTROLLER: Event Handling and Orchestration ---
+        class StudentController {
+            constructor(model, view) {
+                this.model = model;
+                this.view = view;
+
+                // Initial render of students
+                this.view.renderStudentList(this.model.getAllStudents());
+
+                // Set up event listeners
+                this.view.form.addEventListener('submit', this.handleFormSubmit.bind(this));
+                this.view.list.addEventListener('click', this.handleListActions.bind(this));
+                this.view.cancelBtn.addEventListener('click', this.handleCancelEdit.bind(this));
+            }
+
+            // Handles student creation or update
+            handleFormSubmit(e) {
+                e.preventDefault();
+
+                const id = document.getElementById('studentIdPk').value;
+                const name = document.getElementById('name').value.trim();
+                const studentId = document.getElementById('studentId').value.trim();
+                const major = document.getElementById('major').value;
+                const gpa = document.getElementById('gpa').value;
+
+                if (!name || !studentId || !major || !gpa) {
+                    this.view.showMessage('Please fill out all fields.', 'error');
+                    return;
+                }
+                
+                const studentData = { name, studentId, major, gpa };
+                let message = '';
+
+                if (id) {
+                    // UPDATE operation
+                    const updatedStudent = this.model.updateStudent(parseInt(id), studentData);
+                    if (updatedStudent) {
+                         message = `Student ${updatedStudent.name} updated successfully.`;
+                    }
+                } else {
+                    // CREATE operation
+                    const newStudent = this.model.addStudent(studentData);
+                    message = `New student ${newStudent.name} added successfully.`;
+                }
+
+                this.view.clearForm();
+                this.view.renderStudentList(this.model.getAllStudents());
+                this.view.showMessage(message, 'success');
+            }
+
+            // Handles the Edit and Delete buttons on the student list
+            handleListActions(e) {
+                const target = e.target;
+                const id = parseInt(target.dataset.id);
+
+                if (target.classList.contains('edit-btn')) {
+                    // EDIT action
+                    const studentToEdit = this.model.getStudentById(id);
+                    if (studentToEdit) {
+                        this.view.renderFormForEdit(studentToEdit);
+                        // Scroll to the form for better UX on smaller screens
+                        document.getElementById('studentForm').scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else if (target.classList.contains('delete-btn')) {
+                    // DELETE action (using custom modal/prompt is best practice, but using native for simplicity here)
+                    if (confirm('Are you sure you want to delete this student record?')) {
+                        const deleted = this.model.deleteStudent(id);
+                        if (deleted) {
+                            this.view.renderStudentList(this.model.getAllStudents());
+                            this.view.showMessage(`Student record deleted.`, 'info');
+                        } else {
+                            this.view.showMessage(`Error deleting student.`, 'error');
+                        }
+                    }
+                }
+            }
+
+            // Handles the cancel button on the form
+            handleCancelEdit() {
+                this.view.clearForm();
+                this.view.showMessage('Edit cancelled.', 'info');
+            }
+        }
+
+        // --- 4. Initialization (The entry point) ---
+
+        window.onload = () => {
+            // Initial data for demonstration
+            const initialStudents = [
+                { id: generateId(), name: "Alice Johnson", studentId: "S1001", major: "Computer Science", gpa: 3.85 },
+                { id: generateId(), name: "Bob Smith", studentId: "S1002", major: "Business Administration", gpa: 3.20 },
+                { id: generateId(), name: "Charlie Brown", studentId: "S1003", major: "Mechanical Engineering", gpa: 2.95 },
+            ];
+
+            const model = new StudentModel(initialStudents);
+            const view = new StudentView();
+            // eslint-disable-next-line no-unused-vars
+            const controller = new StudentController(model, view);
+        };
+    </script>
+</body>
+</html>
